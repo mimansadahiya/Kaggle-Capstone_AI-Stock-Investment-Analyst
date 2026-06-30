@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+build/
+dist/
+*.egg-info/
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# Environment & Credentials
+.env
+.env.*
+secrets.json
+
+# Local Data
+data/
+*.csv
+*.json
+*.sqlite
+
+# OS Specific
+.DS_Store
+Thumbs.db
