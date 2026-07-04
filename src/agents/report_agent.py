@@ -96,7 +96,7 @@ Use professional, markdown-formatted investment banking style layout. Do not use
                     "parts": [{"text": prompt}]
                 }]
             }
-            response = requests.post(url, headers=headers, json=payload, timeout=15)
+            response = requests.post(url, headers=headers, json=payload, timeout=60)
             
             if response.status_code == 200:
                 data = response.json()

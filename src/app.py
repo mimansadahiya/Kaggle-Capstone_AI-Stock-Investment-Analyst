@@ -9,6 +9,9 @@ from agents.metrics_agent import MetricsAgent
 from agents.valuation_agent import ValuationAgent
 from agents.risk_agent import RiskAgent
 from agents.report_agent import ReportAgent
+from agents.competitive_landscape_agent import CompetitiveLandscapeAgent
+from agents.news_sentiment_agent import NewsSentimentAgent
+from agents.major_risks_agent import MajorRisksAgent
 
 # --- 1. Page Configuration ---
 st.set_page_config(
@@ -87,6 +90,10 @@ st.sidebar.markdown("## Configuration Panel")
 ticker_input = st.sidebar.text_input("Enter Stock Ticker", value="AAPL").upper().strip()
 
 st.sidebar.markdown("---")
+st.sidebar.markdown("### API Credentials")
+api_key_input = st.sidebar.text_input("Gemini API Key (Optional)", type="password", help="If left blank, the app will try to read from local environment variables or .env file.")
+
+st.sidebar.markdown("---")
 st.sidebar.markdown("### Valuation Settings")
 rf_rate = st.sidebar.slider("Risk-Free Rate (Rf)", min_value=0.01, max_value=0.08, value=0.045, step=0.001, format="%.3f")
 market_ret = st.sidebar.slider("Expected Market Return (Rm)", min_value=0.05, max_value=0.15, value=0.10, step=0.005)
@@ -97,6 +104,9 @@ metrics_agent = MetricsAgent()
 valuation_agent = ValuationAgent()
 risk_agent = RiskAgent()
 report_agent = ReportAgent()
+comp_landscape_agent = CompetitiveLandscapeAgent()
+news_sentiment_agent = NewsSentimentAgent()
+major_risks_agent = MajorRisksAgent()
 
 # --- 4. Main App Flow ---
 st.markdown('<div class="main-title">AI Stock Investment Analyst</div>', unsafe_allow_html=True)
@@ -128,12 +138,15 @@ if ticker_input:
             st.markdown(f"<div style='text-align: right;'><span style='font-size: 2.2rem; font-weight: 700;'>${current_price:.2f}</span> <span style='font-size: 1.1rem; color: #7f8c8d;'>{currency}</span></div>", unsafe_allow_html=True)
 
         # Tabs for Dashboard Layout
-        tab_report, tab_charts, tab_metrics, tab_valuation, tab_risk = st.tabs([
+        tab_report, tab_charts, tab_metrics, tab_valuation, tab_comp, tab_sentiment, tab_risk_vol, tab_major_risks = st.tabs([
             "📋 Research Report", 
             "📈 Price & Technicals", 
             "📊 Fundamental Metrics", 
             "💎 Valuation Engine", 
-            "⚠️ Risk Metrics"
+            "🤝 Agent 3: Competitive Landscape",
+            "📣 Agent 4: News & Sentiments",
+            "📊 Volatility & VaR",
+            "🔥 Agent 8: Major Risks"
         ])
 
         # --- Tab 1: AI Generated Report ---
@@ -174,6 +187,8 @@ if ticker_input:
 
             # Generate Report
             with st.spinner("Analyzing stock metrics and generating report..."):
+                active_key = api_key_input.strip() if api_key_input.strip() else None
+                report_agent.api_key = active_key or report_agent.api_key
                 report_markdown = report_agent.generate_report(
                     info, 
                     technical_summary, 
@@ -268,7 +283,7 @@ if ticker_input:
             with col_state:
                 st.subheader("Key Statistics")
                 df_stats = pd.DataFrame([
-                    {"Key": "Beta", "Value": info.get("beta", "N/A")},
+                    {"Key": "Beta", "Value": f"{info.get('beta'):.2f}" if info.get('beta') is not None else "N/A"},
                     {"Key": "Dividend Yield", "Value": f"{info.get('dividendYield', 0)*100:.2f}%" if info.get('dividendYield') else "N/A"},
                     {"Key": "Enterprise Value", "Value": f"${info.get('enterpriseValue', 0):,}" if info.get('enterpriseValue') else "N/A"},
                     {"Key": "Outstanding Shares", "Value": f"{info.get('sharesOutstanding', 0):,}" if info.get('sharesOutstanding') else "N/A"},
@@ -277,8 +292,6 @@ if ticker_input:
                 st.dataframe(df_stats, hide_index=True, use_container_width=True)
 
         # --- Tab 4: Valuation Engine ---
-        with tab_report:
-            pass # Report generated above
         with tab_valuation:
             st.subheader("Intrinsic Valuation Calculators")
             
@@ -314,8 +327,8 @@ if ticker_input:
                 else:
                     st.warning(f"Multiples Engine status: {valuation_multiples['status']}")
 
-        # --- Tab 5: Risk Metrics ---
-        with tab_risk:
+        # --- Tab: Volatility & VaR ---
+        with tab_risk_vol:
             st.subheader("Downside and Volatility Analysis")
             
             if risk_summary["status"] == "Success":
@@ -341,6 +354,36 @@ if ticker_input:
                 """)
             else:
                 st.warning(f"Risk Engine status: {risk_summary['status']}")
+
+        # --- Tab: Competitive Landscape ---
+        with tab_comp:
+            st.subheader("Competitive Landscape Analysis")
+            active_key = api_key_input.strip() if api_key_input.strip() else None
+            with st.spinner("Analyzing competitive landscape..."):
+                comp_markdown = comp_landscape_agent.analyze_competitive_landscape(
+                    active_key, company_name, ticker_input, sector, industry
+                )
+            st.markdown(f'<div class="report-card">{comp_markdown}</div>', unsafe_allow_html=True)
+
+        # --- Tab: News & Sentiments ---
+        with tab_sentiment:
+            st.subheader("News, Sentiments, and Voice of Customers")
+            active_key = api_key_input.strip() if api_key_input.strip() else None
+            with st.spinner("Analyzing recent news and market sentiment..."):
+                sentiment_markdown = news_sentiment_agent.analyze_news_and_sentiment(
+                    active_key, company_name, ticker_input, industry
+                )
+            st.markdown(f'<div class="report-card">{sentiment_markdown}</div>', unsafe_allow_html=True)
+
+        # --- Tab: Major Risks ---
+        with tab_major_risks:
+            st.subheader("Qualitative Risk Assessment")
+            active_key = api_key_input.strip() if api_key_input.strip() else None
+            with st.spinner("Analyzing strategic, operational, financial, and GRC risk factors..."):
+                major_risks_markdown = major_risks_agent.analyze_major_risks(
+                    active_key, company_name, ticker_input
+                )
+            st.markdown(f'<div class="report-card">{major_risks_markdown}</div>', unsafe_allow_html=True)
 
 else:
     st.info("Enter a stock ticker in the sidebar to begin analysis.")

@@ -1,0 +1,71 @@
+import os
+import requests
+from typing import Dict, Any, Optional
+from dotenv import load_dotenv
+
+load_dotenv()
+
+class MajorRisksAgent:
+    """
+    Sub-agent responsible for analyzing strategic, operational, financial,
+    and GRC risk factors using Google Search Grounded Gemini API calls.
+    """
+    def __init__(self):
+        self.default_api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+
+    def analyze_major_risks(
+        self,
+        api_key: Optional[str],
+        company_name: str,
+        ticker: str
+    ) -> str:
+        """
+        Retrieves grounded risk assessment analysis via Gemini API with Google Search.
+        """
+        active_key = api_key or self.default_api_key
+
+        if not active_key:
+            return """> [!WARNING]
+> **Gemini API Key Missing**: A valid Gemini API Key is required to perform real-time web-grounded Major Risks analysis. Please configure your key in the sidebar.
+"""
+
+        prompt = f"""
+You are an expert, institutional-grade risk analyst and compliance officer writing an investment memo.
+Perform a detailed, web-grounded qualitative risk assessment for {company_name} (Ticker: {ticker}).
+
+Your response must be a detailed investment memo section addressing the following core risk categories:
+1. **Strategic Risks**: Risks related to the company's business model, industry disruptions, technological changes, competitive position, or failed expansions.
+2. **Operational Risks**: Risks relating to supply chain disruptions, system failures, labor relations, cybersecurity, or day-to-day execution issues.
+3. **Financial Risks**: Risks concerning debt levels, liquidity, currency fluctuations, interest rate vulnerability, inflation, or credit downgrades.
+4. **GRC (Governance, Risk, and Compliance) Risks**: Risks related to legal battles/lawsuits, regulatory changes, environmental liabilities (ESG issues), and governance problems.
+
+Please structure the memo using professional investment banking layout (Markdown format) with clear headers and bullet points. Do not use generic placeholders.
+"""
+
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={active_key}"
+            headers = {"Content-Type": "application/json"}
+            payload = {
+                "contents": [{
+                    "parts": [{"text": prompt}]
+                }],
+                "tools": [
+                    {"google_search": {}}
+                ]
+            }
+            response = requests.post(url, headers=headers, json=payload, timeout=60)
+            
+            if response.status_code == 200:
+                data = response.json()
+                text = data['candidates'][0]['content']['parts'][0]['text']
+                return text
+            else:
+                return f"""> [!ERROR]
+> **Gemini API Request Failed (Status {response.status_code})**: Unable to complete major risks analysis.
+> Details: {response.text}
+"""
+        except Exception as e:
+            return f"""> [!ERROR]
+> **Connection Error**: Failed to request Gemini API.
+> Details: {e}
+"""

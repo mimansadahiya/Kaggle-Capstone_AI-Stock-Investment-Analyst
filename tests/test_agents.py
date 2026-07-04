@@ -158,3 +158,81 @@ def test_risk_agent(mock_historical_data, mock_info):
     assert res["annualized_volatility"] > 0
     assert res["var_95"] < 0  # VaR return should be negative for downside risk
     assert res["max_drawdown"] < 0  # Drawdown should be negative or zero
+
+
+# --- 3. New Agent Mock Tests ---
+from unittest.mock import patch, MagicMock
+from src.agents.competitive_landscape_agent import CompetitiveLandscapeAgent
+from src.agents.news_sentiment_agent import NewsSentimentAgent
+from src.agents.major_risks_agent import MajorRisksAgent
+
+def test_competitive_landscape_agent_missing_key():
+    agent = CompetitiveLandscapeAgent()
+    agent.default_api_key = None
+    res = agent.analyze_competitive_landscape(None, "Apple", "AAPL", "Tech", "Consumer Elec")
+    assert "Gemini API Key Missing" in res
+
+@patch("requests.post")
+def test_competitive_landscape_agent_success(mock_post):
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "candidates": [{
+            "content": {
+                "parts": [{"text": "Mocked competitive landscape analysis."}]
+            }
+        }]
+    }
+    mock_post.return_value = mock_resp
+
+    agent = CompetitiveLandscapeAgent()
+    res = agent.analyze_competitive_landscape("fake-key", "Apple", "AAPL", "Tech", "Consumer Elec")
+    assert "Mocked competitive landscape analysis." in res
+
+    # Verify Google Search Grounding configuration in payload
+    called_json = mock_post.call_args[1]["json"]
+    assert "tools" in called_json
+    assert "google_search" in called_json["tools"][0]
+
+@patch("requests.post")
+def test_news_sentiment_agent_success(mock_post):
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "candidates": [{
+            "content": {
+                "parts": [{"text": "Mocked news and sentiment analysis."}]
+            }
+        }]
+    }
+    mock_post.return_value = mock_resp
+
+    agent = NewsSentimentAgent()
+    res = agent.analyze_news_and_sentiment("fake-key", "Apple", "AAPL", "Consumer Elec")
+    assert "Mocked news and sentiment analysis." in res
+
+    called_json = mock_post.call_args[1]["json"]
+    assert "tools" in called_json
+    assert "google_search" in called_json["tools"][0]
+
+@patch("requests.post")
+def test_major_risks_agent_success(mock_post):
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "candidates": [{
+            "content": {
+                "parts": [{"text": "Mocked major risks analysis."}]
+            }
+        }]
+    }
+    mock_post.return_value = mock_resp
+
+    agent = MajorRisksAgent()
+    res = agent.analyze_major_risks("fake-key", "Apple", "AAPL")
+    assert "Mocked major risks analysis." in res
+
+    called_json = mock_post.call_args[1]["json"]
+    assert "tools" in called_json
+    assert "google_search" in called_json["tools"][0]
+

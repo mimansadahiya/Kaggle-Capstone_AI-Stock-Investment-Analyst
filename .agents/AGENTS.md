@@ -17,3 +17,10 @@ This workspace contains code and configurations for building an AI-powered stock
 - `/src`: Primary source code (data ingestion, analysis, agent logic, UI).
 - `/notebooks`: Exploratory analysis and prototyping.
 - `/tests`: Test suites.
+
+## Agent Implementations & Security Policies
+- **Agent 3 (Competitive Landscape)**: Uses Google Search Grounding to identify competitors, analyze market share, and track competitor updates.
+- **Agent 4 (News & Sentiments)**: Uses Google Search Grounding to aggregate news from top channels and evaluate customer/social media sentiment.
+- **Agent 8 (Major Risks)**: Uses Google Search Grounding to evaluate strategic, operational, financial, and GRC risks.
+- **API Key Security**: The Streamlit sidebar will include an optional input field for users to provide their own `GEMINI_API_KEY`, falling back to local environment variables or rule-based reports.
+
