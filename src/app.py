@@ -13,6 +13,42 @@ from agents.competitive_landscape_agent import CompetitiveLandscapeAgent
 from agents.news_sentiment_agent import NewsSentimentAgent
 from agents.major_risks_agent import MajorRisksAgent
 
+# --- Helper to parse delimiter-separated agent sections ---
+def parse_agent_sections(raw_text: str):
+    if "===SECTION===" not in raw_text:
+        # Fallback if no delimiter markers exist
+        summary_limit = 150
+        summary_txt = raw_text[:summary_limit].strip()
+        if len(raw_text) > summary_limit:
+            summary_txt += "..."
+        return [{"section": "Analysis Overview", "summary": summary_txt, "details": raw_text}]
+    
+    sections = []
+    parts = raw_text.split("===SECTION===")
+    for part in parts:
+        if not part.strip():
+            continue
+        try:
+            sec_parts = part.split("===SUMMARY===")
+            section_name = sec_parts[0].strip()
+            
+            rem_parts = sec_parts[1].split("===DETAILS===")
+            summary = rem_parts[0].strip()
+            details = rem_parts[1].strip()
+            
+            sections.append({
+                "section": section_name,
+                "summary": summary,
+                "details": details
+            })
+        except Exception:
+            sections.append({
+                "section": "Analysis Section",
+                "summary": "Detailed research report notes.",
+                "details": part
+            })
+    return sections
+
 # --- 1. Page Configuration ---
 st.set_page_config(
     page_title="AI Stock Investment Analyst",
@@ -21,46 +57,107 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- 2. Custom CSS styling for premium look & feel ---
+# --- 2. Custom CSS styling for premium SaaS look & feel ---
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap');
     
     html, body, [class*="css"] {
-        font-family: 'Outfit', sans-serif;
+        font-family: 'Inter', sans-serif;
     }
     
     .main-title {
-        font-size: 2.8rem;
+        font-size: 2.7rem;
         font-weight: 700;
-        background: linear-gradient(135deg, #FF4B4B, #FF8F8F);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 0.5rem;
+        color: #475C7A;
+        font-family: 'Outfit', sans-serif;
+        margin-bottom: 0.2rem;
     }
     
     .sub-title {
-        font-size: 1.1rem;
-        color: #7f8c8d;
-        margin-bottom: 2rem;
+        font-size: 1.05rem;
+        color: #685D79;
+        font-weight: 400;
+        margin-bottom: 1.8rem;
     }
     
+    /* SaaS Card Design system */
+    .saas-card {
+        background-color: #ffffff;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+        margin-bottom: 1.2rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .saas-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(71, 92, 122, 0.08), 0 4px 6px -2px rgba(71, 92, 122, 0.04);
+        border-color: #AB6C82;
+    }
+    
+    .card-header-badge {
+        display: inline-block;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: #475C7A;
+        background-color: #f1f5f9;
+        padding: 0.2rem 0.6rem;
+        border-radius: 9999px;
+        margin-bottom: 0.6rem;
+        border: 1px solid #e2e8f0;
+    }
+    
+    .card-section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #475C7A;
+        font-family: 'Outfit', sans-serif;
+        margin-bottom: 0.6rem;
+    }
+    
+    .card-summary-text {
+        font-size: 0.95rem;
+        color: #4b5563;
+        line-height: 1.5;
+        margin-bottom: 1.2rem;
+    }
+    
+    /* Custom highlights for metric cards */
+    .saas-metric {
+        background: linear-gradient(135deg, #ffffff 0%, #fcfbfb 100%);
+        border-left: 4px solid #AB6C82;
+    }
+    .saas-metric-coral {
+        background: linear-gradient(135deg, #ffffff 0%, #fcfbfb 100%);
+        border-left: 4px solid #D8737F;
+    }
+    .saas-metric-yellow {
+        background: linear-gradient(135deg, #ffffff 0%, #fcfbfb 100%);
+        border-left: 4px solid #FCBB6D;
+    }
+    
+    /* Keep metric cards for core parameters */
     .metric-card {
-        background-color: #f8f9fa;
+        background-color: #ffffff;
         border-radius: 12px;
         padding: 1.2rem;
         box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        border: 1px solid #e9ecef;
+        border: 1px solid #e2e8f0;
         text-align: center;
         transition: all 0.3s ease;
     }
     .metric-card:hover {
         transform: translateY(-2px);
         box-shadow: 0 6px 12px rgba(0,0,0,0.08);
+        border-color: #AB6C82;
     }
     .metric-label {
         font-size: 0.9rem;
-        color: #6c757d;
+        color: #685D79;
         font-weight: 500;
         text-transform: uppercase;
         margin-bottom: 0.4rem;
@@ -68,12 +165,12 @@ st.markdown("""
     .metric-value {
         font-size: 1.6rem;
         font-weight: 700;
-        color: #212529;
+        color: #475C7A;
     }
     
     .report-card {
         background-color: #ffffff;
-        border-left: 5px solid #FF4B4B;
+        border-left: 5px solid #475C7A;
         border-radius: 8px;
         padding: 2rem;
         box-shadow: 0 10px 20px rgba(0,0,0,0.05);
@@ -81,6 +178,16 @@ st.markdown("""
         border-right: 1px solid #f1f3f5;
         border-bottom: 1px solid #f1f3f5;
         margin-top: 1.5rem;
+    }
+    
+    /* Tabs custom highlight */
+    .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #685D79;
+    }
+    .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
+        border-bottom-color: #AB6C82 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -355,35 +462,104 @@ if ticker_input:
             else:
                 st.warning(f"Risk Engine status: {risk_summary['status']}")
 
-        # --- Tab: Competitive Landscape ---
+        # --- Tab: Agent 3: Competitive Landscape ---
         with tab_comp:
-            st.subheader("Competitive Landscape Analysis")
-            active_key = api_key_input.strip() if api_key_input.strip() else None
-            with st.spinner("Analyzing competitive landscape..."):
-                comp_markdown = comp_landscape_agent.analyze_competitive_landscape(
-                    active_key, company_name, ticker_input, sector, industry
-                )
-            st.markdown(f'<div class="report-card">{comp_markdown}</div>', unsafe_allow_html=True)
+            st.subheader("Agent 3: Competitive Landscape Analysis")
+            run_agent_3 = st.toggle("Activate Agent 3 (Competitive Landscape)", value=False, key="run_agent_3")
+            if run_agent_3:
+                active_key = api_key_input.strip() if api_key_input.strip() else None
+                with st.spinner("Analyzing competitive landscape..."):
+                    comp_markdown = comp_landscape_agent.analyze_competitive_landscape(
+                        active_key, company_name, ticker_input, sector, industry
+                    )
+                
+                sections = parse_agent_sections(comp_markdown)
+                if len(sections) == 1 and sections[0]["section"] == "Analysis Overview":
+                    st.markdown(f'<div class="saas-card saas-metric-coral">{comp_markdown}</div>', unsafe_allow_html=True)
+                else:
+                    col1, col2 = st.columns(2)
+                    for i, sec in enumerate(sections):
+                        target_col = col1 if i % 2 == 0 else col2
+                        with target_col:
+                            highlight_class = "saas-metric" if i % 3 == 0 else ("saas-metric-coral" if i % 3 == 1 else "saas-metric-yellow")
+                            st.markdown(f"""
+                            <div class="saas-card {highlight_class}">
+                                <div class="card-header-badge">Agent 3 Section {i+1}</div>
+                                <div class="card-section-title">{sec['section']}</div>
+                                <div class="card-summary-text">{sec['summary']}</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            with st.popover(f"🔍 View {sec['section']} Details", use_container_width=True):
+                                st.markdown(sec['details'])
+                            st.write("")
+            else:
+                st.info("Agent 3 is currently inactive. Turn on the toggle switch above to run the analysis.")
 
-        # --- Tab: News & Sentiments ---
+        # --- Tab: Agent 4: News & Sentiments ---
         with tab_sentiment:
-            st.subheader("News, Sentiments, and Voice of Customers")
-            active_key = api_key_input.strip() if api_key_input.strip() else None
-            with st.spinner("Analyzing recent news and market sentiment..."):
-                sentiment_markdown = news_sentiment_agent.analyze_news_and_sentiment(
-                    active_key, company_name, ticker_input, industry
-                )
-            st.markdown(f'<div class="report-card">{sentiment_markdown}</div>', unsafe_allow_html=True)
+            st.subheader("Agent 4: News, Sentiments, and Voice of Customers")
+            run_agent_4 = st.toggle("Activate Agent 4 (News & Sentiments)", value=False, key="run_agent_4")
+            if run_agent_4:
+                active_key = api_key_input.strip() if api_key_input.strip() else None
+                with st.spinner("Analyzing recent news and market sentiment..."):
+                    sentiment_markdown = news_sentiment_agent.analyze_news_and_sentiment(
+                        active_key, company_name, ticker_input, industry
+                    )
+                
+                sections = parse_agent_sections(sentiment_markdown)
+                if len(sections) == 1 and sections[0]["section"] == "Analysis Overview":
+                    st.markdown(f'<div class="saas-card saas-metric-coral">{sentiment_markdown}</div>', unsafe_allow_html=True)
+                else:
+                    col1, col2 = st.columns(2)
+                    for i, sec in enumerate(sections):
+                        target_col = col1 if i % 2 == 0 else col2
+                        with target_col:
+                            highlight_class = "saas-metric-yellow" if i % 3 == 0 else ("saas-metric" if i % 3 == 1 else "saas-metric-coral")
+                            st.markdown(f"""
+                            <div class="saas-card {highlight_class}">
+                                <div class="card-header-badge">Agent 4 Section {i+1}</div>
+                                <div class="card-section-title">{sec['section']}</div>
+                                <div class="card-summary-text">{sec['summary']}</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            with st.popover(f"🔍 View {sec['section']} Details", use_container_width=True):
+                                st.markdown(sec['details'])
+                            st.write("")
+            else:
+                st.info("Agent 4 is currently inactive. Turn on the toggle switch above to run the analysis.")
 
-        # --- Tab: Major Risks ---
+        # --- Tab: Agent 8: Major Risks ---
         with tab_major_risks:
-            st.subheader("Qualitative Risk Assessment")
-            active_key = api_key_input.strip() if api_key_input.strip() else None
-            with st.spinner("Analyzing strategic, operational, financial, and GRC risk factors..."):
-                major_risks_markdown = major_risks_agent.analyze_major_risks(
-                    active_key, company_name, ticker_input
-                )
-            st.markdown(f'<div class="report-card">{major_risks_markdown}</div>', unsafe_allow_html=True)
+            st.subheader("Agent 8: Qualitative Risk Assessment")
+            run_agent_8 = st.toggle("Activate Agent 8 (Major Risks)", value=False, key="run_agent_8")
+            if run_agent_8:
+                active_key = api_key_input.strip() if api_key_input.strip() else None
+                with st.spinner("Analyzing strategic, operational, financial, and GRC risk factors..."):
+                    major_risks_markdown = major_risks_agent.analyze_major_risks(
+                        active_key, company_name, ticker_input
+                    )
+                
+                sections = parse_agent_sections(major_risks_markdown)
+                if len(sections) == 1 and sections[0]["section"] == "Analysis Overview":
+                    st.markdown(f'<div class="saas-card saas-metric-coral">{major_risks_markdown}</div>', unsafe_allow_html=True)
+                else:
+                    col1, col2 = st.columns(2)
+                    for i, sec in enumerate(sections):
+                        target_col = col1 if i % 2 == 0 else col2
+                        with target_col:
+                            highlight_class = "saas-metric-coral" if i % 3 == 0 else ("saas-metric-yellow" if i % 3 == 1 else "saas-metric")
+                            st.markdown(f"""
+                            <div class="saas-card {highlight_class}">
+                                <div class="card-header-badge">Agent 8 Section {i+1}</div>
+                                <div class="card-section-title">{sec['section']}</div>
+                                <div class="card-summary-text">{sec['summary']}</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            with st.popover(f"🔍 View {sec['section']} Details", use_container_width=True):
+                                st.markdown(sec['details'])
+                            st.write("")
+            else:
+                st.info("Agent 8 is currently inactive. Turn on the toggle switch above to run the analysis.")
 
 else:
     st.info("Enter a stock ticker in the sidebar to begin analysis.")

@@ -179,7 +179,7 @@ def test_competitive_landscape_agent_success(mock_post):
     mock_resp.json.return_value = {
         "candidates": [{
             "content": {
-                "parts": [{"text": "Mocked competitive landscape analysis."}]
+                "parts": [{"text": "===SECTION===\nKey Competitors\n===SUMMARY===\nMocked summary.\n===DETAILS===\nMocked competitive landscape analysis."}]
             }
         }]
     }
@@ -201,7 +201,7 @@ def test_news_sentiment_agent_success(mock_post):
     mock_resp.json.return_value = {
         "candidates": [{
             "content": {
-                "parts": [{"text": "Mocked news and sentiment analysis."}]
+                "parts": [{"text": "===SECTION===\nMajor News Updates\n===SUMMARY===\nMocked summary.\n===DETAILS===\nMocked news and sentiment analysis."}]
             }
         }]
     }
@@ -222,7 +222,7 @@ def test_major_risks_agent_success(mock_post):
     mock_resp.json.return_value = {
         "candidates": [{
             "content": {
-                "parts": [{"text": "Mocked major risks analysis."}]
+                "parts": [{"text": "===SECTION===\nStrategic Risks\n===SUMMARY===\nMocked summary.\n===DETAILS===\nMocked major risks analysis."}]
             }
         }]
     }

@@ -36,13 +36,26 @@ class CompetitiveLandscapeAgent:
 You are an expert, institutional-grade financial analyst writing an investment memo.
 Perform a detailed, web-grounded competitive landscape analysis for {company_name} (Ticker: {ticker}) in the {sector} / {industry} industry.
 
-Your response must be a detailed investment memo section addressing:
-1. **Key Competitors**: Identify the main competitors in the market (both direct and indirect). Highlight their ticker symbols if public.
-2. **Market Share & Sustainable Advantage (Moat)**: Analyze the company's estimated market share compared to these peers. Explain what constitutes the company's sustainable competitive advantage (economic moat) or lack thereof.
-3. **Latest Major Competitor Updates**: Search for the latest major news and developments from key competitors (e.g., newly developed capabilities, new products/services, market expansions, strategic shifts). Explain what these updates mean for {company_name}.
-4. **Barriers to Entry, New Entrants & Substitutions**: Evaluate the barriers to entry in this market. Highlight any notable new entrants or substitution threats.
+You MUST structure your response strictly into 4 sections:
+1. Key Competitors
+2. Market Share & Moat
+3. Competitor Updates
+4. Barriers to Entry
 
-Please structure the memo using professional investment banking layout (Markdown format) with clear tables, bullet points, and headers. Do not use generic placeholders.
+For each section, you MUST format the output exactly as follows using the exact delimiter tags:
+
+===SECTION===
+[Section Name]
+===SUMMARY===
+[A concise, 1-2 sentence overall summary/headline of the section]
+===DETAILS===
+[A detailed, institutional-grade, verbose markdown analysis with bullet points, tables, and paragraphs containing the deep research]
+
+Analyze the following for each section:
+1. **Key Competitors**: Identify the main competitors in the market (both direct and indirect). Highlight their ticker symbols if public.
+2. **Market Share & Moat**: Analyze the company's estimated market share compared to these peers. Explain what constitutes the company's sustainable competitive advantage (economic moat) or lack thereof.
+3. **Competitor Updates**: Search for the latest major news and developments from key competitors (e.g., newly developed capabilities, new products/services, market expansions, strategic shifts). Explain what these updates mean for {company_name}.
+4. **Barriers to Entry**: Evaluate the barriers to entry in this market. Highlight any notable new entrants or substitution threats.
 """
 
         try:
@@ -62,6 +75,13 @@ Please structure the memo using professional investment banking layout (Markdown
                 data = response.json()
                 text = data['candidates'][0]['content']['parts'][0]['text']
                 return text
+            elif response.status_code == 429:
+                return """> [!WARNING]
+> **Gemini API Limit Reached (Status 429)**: You have exceeded the request quota limit for the Gemini Free Tier.
+> 
+> * **If you generated a new API key recently**: Make sure you have added a billing account to your Google AI Studio project to enable higher rate limits.
+> * **Temporary Delay**: The Free Tier limits requests per minute. Please wait 1-2 minutes and toggle this agent ON again to retry.
+> """
             else:
                 return f"""> [!ERROR]
 > **Gemini API Request Failed (Status {response.status_code})**: Unable to complete competitive landscape analysis.

@@ -33,13 +33,26 @@ class MajorRisksAgent:
 You are an expert, institutional-grade risk analyst and compliance officer writing an investment memo.
 Perform a detailed, web-grounded qualitative risk assessment for {company_name} (Ticker: {ticker}).
 
-Your response must be a detailed investment memo section addressing the following core risk categories:
+You MUST structure your response strictly into 4 sections:
+1. Strategic Risks
+2. Operational Risks
+3. Financial Risks
+4. GRC Risks
+
+For each section, you MUST format the output exactly as follows using the exact delimiter tags:
+
+===SECTION===
+[Section Name]
+===SUMMARY===
+[A concise, 1-2 sentence overall summary/headline of the section]
+===DETAILS===
+[A detailed, institutional-grade, verbose markdown analysis with bullet points and paragraphs containing the deep research]
+
+Analyze the following for each section:
 1. **Strategic Risks**: Risks related to the company's business model, industry disruptions, technological changes, competitive position, or failed expansions.
 2. **Operational Risks**: Risks relating to supply chain disruptions, system failures, labor relations, cybersecurity, or day-to-day execution issues.
 3. **Financial Risks**: Risks concerning debt levels, liquidity, currency fluctuations, interest rate vulnerability, inflation, or credit downgrades.
-4. **GRC (Governance, Risk, and Compliance) Risks**: Risks related to legal battles/lawsuits, regulatory changes, environmental liabilities (ESG issues), and governance problems.
-
-Please structure the memo using professional investment banking layout (Markdown format) with clear headers and bullet points. Do not use generic placeholders.
+4. **GRC Risks**: Risks related to legal battles/lawsuits, regulatory changes, environmental liabilities (ESG issues), and governance problems.
 """
 
         try:
@@ -59,6 +72,13 @@ Please structure the memo using professional investment banking layout (Markdown
                 data = response.json()
                 text = data['candidates'][0]['content']['parts'][0]['text']
                 return text
+            elif response.status_code == 429:
+                return """> [!WARNING]
+> **Gemini API Limit Reached (Status 429)**: You have exceeded the request quota limit for the Gemini Free Tier.
+> 
+> * **If you generated a new API key recently**: Make sure you have added a billing account to your Google AI Studio project to enable higher rate limits.
+> * **Temporary Delay**: The Free Tier limits requests per minute. Please wait 1-2 minutes and toggle this agent ON again to retry.
+> """
             else:
                 return f"""> [!ERROR]
 > **Gemini API Request Failed (Status {response.status_code})**: Unable to complete major risks analysis.

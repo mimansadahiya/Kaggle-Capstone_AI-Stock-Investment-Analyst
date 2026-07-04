@@ -102,6 +102,16 @@ Use professional, markdown-formatted investment banking style layout. Do not use
                 data = response.json()
                 text = data['candidates'][0]['content']['parts'][0]['text']
                 return text
+            elif response.status_code == 429:
+                return f"""### Gemini API Limit Reached (Status 429)
+You have exceeded the request quota limit for the Gemini Free Tier.
+
+* **If you generated a new API key recently**: Make sure you have added a billing account to your Google AI Studio project to enable higher rate limits.
+* **Temporary Delay**: The Free Tier limits requests per minute. Please wait 1-2 minutes and click "Generate Memo" again to retry.
+
+---
+
+{self._generate_fallback_report(ticker, company_name, current_price, fundamental_data, valuation_data, risk_data)}"""
             else:
                 return f"""### API Error (Status {response.status_code})
 Failed to fetch LLM response. 
