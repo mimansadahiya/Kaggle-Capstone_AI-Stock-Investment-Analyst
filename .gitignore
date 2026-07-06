@@ -1,0 +1,23 @@
+# Python virtual environments
+backend/venv/
+venv/
+ENV/
+env/
+
+# Sensitive environment files (DO NOT SHARE OR COMMIT)
+.env
+backend/.env
+
+# Python caching
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Editor configurations
+.vscode/
+.idea/
