@@ -236,3 +236,97 @@ def test_major_risks_agent_success(mock_post):
     assert "tools" in called_json
     assert "google_search" in called_json["tools"][0]
 
+
+# --- 4. Tests for Newly Merged Agents ---
+from src.agents.company_overview_agent import CompanyOverviewAgent
+from src.agents.macro_outlook_agent import MacroOutlookAgent
+from src.agents.industry_analysis_agent import IndustryAnalysisAgent
+from src.agents.performance_assessor_agent import PerformanceAssessorAgent
+
+@patch("requests.post")
+def test_company_overview_agent_success(mock_post):
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "candidates": [{
+            "content": {
+                "parts": [{"text": "===SECTION===\nExecutive Summary\n===SUMMARY===\nMocked summary.\n===DETAILS===\nMocked company overview analysis."}]
+            }
+        }]
+    }
+    mock_post.return_value = mock_resp
+
+    agent = CompanyOverviewAgent()
+    res = agent.analyze_company_overview("fake-key", "Apple", "AAPL", "Tech", "Consumer Elec")
+    assert "Mocked company overview analysis." in res
+
+    called_json = mock_post.call_args[1]["json"]
+    assert "tools" in called_json
+    assert "google_search" in called_json["tools"][0]
+
+@patch("requests.post")
+def test_macro_outlook_agent_success(mock_post):
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "candidates": [{
+            "content": {
+                "parts": [{"text": "===SECTION===\nMacroeconomic Environment\n===SUMMARY===\nMocked summary.\n===DETAILS===\nMocked macro analysis."}]
+            }
+        }]
+    }
+    mock_post.return_value = mock_resp
+
+    agent = MacroOutlookAgent()
+    res = agent.analyze_macro_outlook("fake-key", "Apple", "AAPL", "Tech", "Consumer Elec")
+    assert "Mocked macro analysis." in res
+
+    called_json = mock_post.call_args[1]["json"]
+    assert "tools" in called_json
+    assert "google_search" in called_json["tools"][0]
+
+@patch("requests.post")
+def test_industry_analysis_agent_success(mock_post):
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "candidates": [{
+            "content": {
+                "parts": [{"text": "===SECTION===\nMarket Size\n===SUMMARY===\nMocked summary.\n===DETAILS===\nMocked industry analysis."}]
+            }
+        }]
+    }
+    mock_post.return_value = mock_resp
+
+    agent = IndustryAnalysisAgent()
+    res = agent.analyze_industry("fake-key", "Apple", "AAPL", "Tech", "Consumer Elec")
+    assert "Mocked industry analysis." in res
+
+    called_json = mock_post.call_args[1]["json"]
+    assert "tools" in called_json
+    assert "google_search" in called_json["tools"][0]
+
+@patch("requests.post")
+@patch("src.agents.performance_assessor_agent.PerformanceAssessorAgent.retrieve_search_context")
+def test_performance_assessor_agent_success(mock_search, mock_post):
+    mock_search.return_value = "Mocked DuckDuckGo search context"
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "candidates": [{
+            "content": {
+                "parts": [{"text": "Mocked financial performance assessment report."}]
+            }
+        }]
+    }
+    mock_post.return_value = mock_resp
+
+    agent = PerformanceAssessorAgent()
+    res = agent.analyze_performance("fake-key", "Apple")
+    assert "Mocked financial performance assessment report." in res
+
+    called_json = mock_post.call_args[1]["json"]
+    assert "contents" in called_json
+    assert "Mocked DuckDuckGo search context" in called_json["contents"][0]["parts"][0]["text"]
+
+

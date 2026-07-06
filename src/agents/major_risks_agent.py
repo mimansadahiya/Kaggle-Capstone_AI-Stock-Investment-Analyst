@@ -33,26 +33,28 @@ class MajorRisksAgent:
 You are an expert, institutional-grade risk analyst and compliance officer writing an investment memo.
 Perform a detailed, web-grounded qualitative risk assessment for {company_name} (Ticker: {ticker}).
 
-You MUST structure your response strictly into 4 sections:
+You MUST structure your response into 4 sections:
 1. Strategic Risks
 2. Operational Risks
 3. Financial Risks
 4. GRC Risks
-
-For each section, you MUST format the output exactly as follows using the exact delimiter tags:
-
-===SECTION===
-[Section Name]
-===SUMMARY===
-[A concise, 1-2 sentence overall summary/headline of the section]
-===DETAILS===
-[A detailed, institutional-grade, verbose markdown analysis with bullet points and paragraphs containing the deep research]
 
 Analyze the following for each section:
 1. **Strategic Risks**: Risks related to the company's business model, industry disruptions, technological changes, competitive position, or failed expansions.
 2. **Operational Risks**: Risks relating to supply chain disruptions, system failures, labor relations, cybersecurity, or day-to-day execution issues.
 3. **Financial Risks**: Risks concerning debt levels, liquidity, currency fluctuations, interest rate vulnerability, inflation, or credit downgrades.
 4. **GRC Risks**: Risks related to legal battles/lawsuits, regulatory changes, environmental liabilities (ESG issues), and governance problems.
+
+You MUST output your response in JSON format matching this exact schema:
+{{
+  "sections": [
+    {{
+      "section_name": "Section Name",
+      "summary": "A concise, 1-2 sentence overall summary/headline of the section",
+      "details": "Detailed, institutional-grade, verbose markdown analysis with bullet points and paragraphs containing the deep research"
+    }}
+  ]
+}}
 """
 
         try:
@@ -64,9 +66,12 @@ Analyze the following for each section:
                 }],
                 "tools": [
                     {"google_search": {}}
-                ]
+                ],
+                "generationConfig": {
+                    "responseMimeType": "application/json"
+                }
             }
-            response = requests.post(url, headers=headers, json=payload, timeout=60)
+            response = requests.post(url, headers=headers, json=payload, timeout=180)
             
             if response.status_code == 200:
                 data = response.json()

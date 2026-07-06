@@ -5,44 +5,48 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-class NewsSentimentAgent:
+class CompanyOverviewAgent:
     """
-    Sub-agent responsible for aggregating major news updates, customer reviews,
-    and financial social media sentiments using Google Search Grounded Gemini API calls.
+    Sub-agent responsible for conducting a comprehensive Company Overview analysis
+    using Google Search Grounded Gemini LLM queries.
     """
     def __init__(self):
+        # Fallback environment key loading
         self.default_api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
 
-    def analyze_news_and_sentiment(
+    def analyze_company_overview(
         self,
         api_key: Optional[str],
         company_name: str,
         ticker: str,
+        sector: str,
         industry: str
     ) -> str:
         """
-        Retrieves grounded news, customer, and social sentiment analysis via Gemini API with Google Search.
+        Retrieves grounded company overview analysis via Gemini API with Google Search.
         """
         active_key = api_key or self.default_api_key
 
         if not active_key:
             return """> [!WARNING]
-> **Gemini API Key Missing**: A valid Gemini API Key is required to perform real-time web-grounded News, Sentiment, and Voice of Customer analysis. Please configure your key in the sidebar.
+> **Gemini API Key Missing**: A valid Gemini API Key is required to perform real-time web-grounded Company Overview analysis. Please configure your key in the sidebar.
 """
 
         prompt = f"""
-You are an expert, institutional-grade market sentiment analyst writing an investment memo.
-Perform a detailed, web-grounded news, customer sentiment, and social media sentiment analysis for {company_name} (Ticker: {ticker}) in the {industry} industry.
+You are Agent 1, a Senior Investment Banking Research Analyst specializing in equity research. 
+Your task is to provide a comprehensive, investment-banking-grade Company Overview for the following company: {company_name} (Ticker: {ticker}) in the {sector} / {industry} industry.
 
-You MUST structure your response into 3 sections:
-1. Major News Updates
-2. Customer Sentiments
-3. Social Media & Retail Sentiment
+You MUST structure your response into 4 sections:
+1. Executive Summary & Corporate Info
+2. Business Model & Value Proposition
+3. Business Lines & Revenue Segments
+4. Corporate Strategy & Future Pipelines
 
 Analyze the following for each section:
-1. **Major News Updates**: Aggregate and summarize the most significant recent news updates about the company. Reference coverage from top business news channels (e.g. CNBC, Bloomberg, Reuters, Financial Times, Wall Street Journal).
-2. **Customer Sentiments**: Search for and summarize what actual customers are saying about the company's products/services (reliability, quality, user satisfaction, customer service).
-3. **Social Media & Retail Sentiment**: Summarize what top financial social media channels, retail investor forums (like Reddit, Twitter/X, and financial blogs), and major local financial influencers in the country/industry are saying about this company.
+1. **Executive Summary & Corporate Info**: Official name, ticker, sector, industry, headquarters, key executives (CEO, CFO, etc.), and a brief summary of the company's core mission and historical context.
+2. **Business Model & Value Proposition**: Detailed explanation of how the company generates revenue and its core value proposition, target customer segments, and distribution channels.
+3. **Business Lines & Revenue Segments**: Breakdown of major business divisions or product/service lines. If available, include a breakdown of revenue share or growth rates by segment and geographic region (present this in a markdown table).
+4. **Corporate Strategy & Future Pipelines**: Critical growth drivers, recent strategic shifts, mergers & acquisitions (M&A), partnerships, current R&D focus, new product/service launches, and technological innovations the company is prioritizing.
 
 You MUST output your response in JSON format matching this exact schema:
 {{
@@ -50,7 +54,7 @@ You MUST output your response in JSON format matching this exact schema:
     {{
       "section_name": "Section Name",
       "summary": "A concise, 1-2 sentence overall summary/headline of the section",
-      "details": "Detailed, institutional-grade, verbose markdown analysis with bullet points, quotes, and paragraphs containing the deep research"
+      "details": "Detailed, institutional-grade, verbose markdown analysis with bullet points, tables, and paragraphs containing the deep research"
     }}
   ]
 }}
@@ -80,12 +84,11 @@ You MUST output your response in JSON format matching this exact schema:
                 return """> [!WARNING]
 > **Gemini API Limit Reached (Status 429)**: You have exceeded the request quota limit for the Gemini Free Tier.
 > 
-> * **If you generated a new API key recently**: Make sure you have added a billing account to your Google AI Studio project to enable higher rate limits.
 > * **Temporary Delay**: The Free Tier limits requests per minute. Please wait 1-2 minutes and toggle this agent ON again to retry.
-> """
+"""
             else:
                 return f"""> [!ERROR]
-> **Gemini API Request Failed (Status {response.status_code})**: Unable to complete news and sentiment analysis.
+> **Gemini API Request Failed (Status {response.status_code})**: Unable to complete company overview analysis.
 > Details: {response.text}
 """
         except Exception as e:

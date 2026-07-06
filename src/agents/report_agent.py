@@ -21,7 +21,8 @@ class ReportAgent:
         technical_data: Dict[str, Any],
         fundamental_data: Dict[str, Any],
         valuation_data: Dict[str, Any],
-        risk_data: Dict[str, Any]
+        risk_data: Dict[str, Any],
+        qualitative_reports: Optional[Dict[str, str]] = None
     ) -> str:
         """
         Synthesizes the analyst report using Gemini LLM, with a robust fallback.
@@ -33,6 +34,30 @@ class ReportAgent:
         industry = info.get('industry', 'Unknown Industry')
         summary = info.get('longBusinessSummary', 'No description available.')
         current_price = info.get('currentPrice') or info.get('regularMarketPreviousClose') or "N/A"
+
+        # Construct qualitative context from sub-agents
+        qualitative_context = ""
+        if qualitative_reports:
+            for agent_name, raw_json in qualitative_reports.items():
+                if not raw_json or not isinstance(raw_json, str) or raw_json.strip().startswith(">"):
+                    continue
+                try:
+                    data = json.loads(raw_json)
+                    qualitative_context += f"\n### {agent_name} Findings\n"
+                    if "sections" in data:
+                        for sec in data["sections"]:
+                            name = sec.get("section_name", "Section")
+                            summary_text = sec.get("summary", "")
+                            qualitative_context += f"- **{name}**: {summary_text}\n"
+                    else:
+                        summary_text = data.get("summary", raw_json[:300])
+                        qualitative_context += f"- **Overview**: {summary_text}\n"
+                except Exception:
+                    # Fallback if parsing fails
+                    qualitative_context += f"\n### {agent_name} Findings\n{raw_json[:300]}\n"
+        
+        if not qualitative_context.strip():
+            qualitative_context = "No sub-agent qualitative reports are available yet. Instruct the user to activate sub-agents in the respective tabs to populate these insights."
 
         prompt = f"""
 You are an expert, institutional-grade AI Stock Investment Analyst.
@@ -72,14 +97,18 @@ Current Price: ${current_price}
 - Beta (vs Market): {risk_data.get('beta', 'N/A')}
 - Maximum Drawdown: {risk_data.get('max_drawdown', 'N/A')}
 
+--- Qualitative Research Findings ---
+{qualitative_context}
+
 --- REPORT INSTRUCTIONS ---
-Please synthesize all the sections above. Provide a structured research report with:
-1. **Executive Summary**: A concise investment thesis.
+Please synthesize all the quantitative metrics and qualitative findings above. Provide a structured research report with:
+1. **Executive Summary**: A concise investment thesis incorporating the macroeconomic outlook and company strategy.
 2. **Technical Analysis Evaluation**: Trend analysis (bullish, bearish, neutral) based on SMAs, RSI, MACD.
-3. **Fundamental Analysis Evaluation**: Analysis of profitability, safety (debt), and efficiency (ROE).
-4. **Valuation Assessment**: Compare current price with intrinsic DCF value and multiples target.
-5. **Risk Assessment**: Analyze key volatility and downside risks (VaR, beta, maximum drawdown).
-6. **Recommendation & Target Price**: Clear "BUY", "SELL", or "HOLD" recommendation, with a 12-month target price and rationale.
+3. **Fundamental Analysis Evaluation**: Analysis of profitability, safety (debt), efficiency (ROE), and business model dynamics.
+4. **Competitive Position & Industry Outlook**: Synthesize the key industry trends, competitors, market share/moats, and CAGR growth.
+5. **Valuation Assessment**: Compare current price with intrinsic DCF value and multiples target.
+6. **Risk Assessment**: Analyze key volatility, downside risks (VaR, beta, maximum drawdown), and qualitative strategic/operational/GRC risks.
+7. **Recommendation & Target Price**: Clear "BUY", "SELL", or "HOLD" recommendation, with a 12-month target price and rationale. Include markdown instructions directing the user to click on respective agent tabs for deeper research cards (e.g. "For further breakdown of competitor expansions, refer to the **Agent 3: Competitive Landscape** tab.").
 
 Use professional, markdown-formatted investment banking style layout. Do not use generic text.
 """
@@ -96,7 +125,7 @@ Use professional, markdown-formatted investment banking style layout. Do not use
                     "parts": [{"text": prompt}]
                 }]
             }
-            response = requests.post(url, headers=headers, json=payload, timeout=60)
+            response = requests.post(url, headers=headers, json=payload, timeout=180)
             
             if response.status_code == 200:
                 data = response.json()

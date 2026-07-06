@@ -5,16 +5,16 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-class CompetitiveLandscapeAgent:
+class IndustryAnalysisAgent:
     """
-    Sub-agent responsible for analyzing the competitive landscape of a company
+    Sub-agent responsible for conducting a comprehensive Industry and Market Analysis
     using Google Search Grounded Gemini LLM queries.
     """
     def __init__(self):
         # Fallback environment key loading
         self.default_api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
 
-    def analyze_competitive_landscape(
+    def analyze_industry(
         self,
         api_key: Optional[str],
         company_name: str,
@@ -23,30 +23,32 @@ class CompetitiveLandscapeAgent:
         industry: str
     ) -> str:
         """
-        Retrieves grounded competitive landscape analysis via Gemini API with Google Search.
+        Retrieves grounded industry and market analysis via Gemini API with Google Search.
         """
         active_key = api_key or self.default_api_key
 
         if not active_key:
             return """> [!WARNING]
-> **Gemini API Key Missing**: A valid Gemini API Key is required to perform real-time web-grounded Competitive Landscape analysis. Please configure your key in the sidebar.
+> **Gemini API Key Missing**: A valid Gemini API Key is required to perform real-time web-grounded Industry Analysis. Please configure your key in the sidebar.
 """
 
         prompt = f"""
-You are an expert, institutional-grade financial analyst writing an investment memo.
-Perform a detailed, web-grounded competitive landscape analysis for {company_name} (Ticker: {ticker}) in the {sector} / {industry} industry.
+You are Agent 5, a Senior Industry & Market Research Analyst in Equity Research.
+Your task is to provide a comprehensive, investment-banking-grade Industry and Market Analysis for the sector/market of the following company: {company_name} (Ticker: {ticker}) in the {sector} / {industry} industry.
 
-You MUST structure your response into 4 sections:
-1. Key Competitors
-2. Market Share & Moat
-3. Competitor Updates
-4. Barriers to Entry
+You MUST structure your response into 5 sections:
+1. Market Size & Historical Growth
+2. Projected Market Growth & CAGR
+3. Key Industry Trends & Growth Drivers
+4. Key Challenges & Headwinds
+5. Competitive Landscape & Dynamics
 
 Analyze the following for each section:
-1. **Key Competitors**: Identify the main competitors in the market (both direct and indirect). Highlight their ticker symbols if public.
-2. **Market Share & Moat**: Analyze the company's estimated market share compared to these peers. Explain what constitutes the company's sustainable competitive advantage (economic moat) or lack thereof.
-3. **Competitor Updates**: Search for the latest major news and developments from key competitors (e.g., newly developed capabilities, new products/services, market expansions, strategic shifts). Explain what these updates mean for {company_name}.
-4. **Barriers to Entry**: Evaluate the barriers to entry in this market. Highlight any notable new entrants or substitution threats.
+1. **Market Size & Historical Growth**: Total Addressable Market (TAM) or overall global industry size (in USD value) for the company's core markets. Historical growth trends of the market over the past 3-5 years.
+2. **Projected Market Growth & CAGR**: Projected market size and expected compound annual growth rate (CAGR) for the next 5-10 years (e.g., from 2026 to 2031/2036). Show projections/estimates in a markdown table where appropriate.
+3. **Key Industry Trends & Growth Drivers**: Major secular trends currently shaping the industry. Core drivers of growth (e.g., technological paradigm shifts, changing consumer behavior, demographics, rising demand).
+4. **Key Challenges & Headwinds**: Current and emerging challenges facing the industry (e.g., regulatory pressure, supply chain vulnerabilities, rising material/labor costs, macroeconomic shifts, security concerns).
+5. **Competitive Landscape & Dynamics**: Competitor mapping: identify main competitors and estimate their market shares. Barriers to entry (e.g., capital scale, patents, network effects, high customer switching costs).
 
 You MUST output your response in JSON format matching this exact schema:
 {{
@@ -84,12 +86,11 @@ You MUST output your response in JSON format matching this exact schema:
                 return """> [!WARNING]
 > **Gemini API Limit Reached (Status 429)**: You have exceeded the request quota limit for the Gemini Free Tier.
 > 
-> * **If you generated a new API key recently**: Make sure you have added a billing account to your Google AI Studio project to enable higher rate limits.
 > * **Temporary Delay**: The Free Tier limits requests per minute. Please wait 1-2 minutes and toggle this agent ON again to retry.
-> """
+"""
             else:
                 return f"""> [!ERROR]
-> **Gemini API Request Failed (Status {response.status_code})**: Unable to complete competitive landscape analysis.
+> **Gemini API Request Failed (Status {response.status_code})**: Unable to complete industry analysis.
 > Details: {response.text}
 """
         except Exception as e:

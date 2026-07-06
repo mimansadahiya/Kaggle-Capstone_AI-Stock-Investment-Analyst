@@ -5,16 +5,16 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-class CompetitiveLandscapeAgent:
+class MacroOutlookAgent:
     """
-    Sub-agent responsible for analyzing the competitive landscape of a company
-    using Google Search Grounded Gemini LLM queries.
+    Sub-agent responsible for conducting a comprehensive Macroeconomic Environment
+    and Sector Outlook analysis using Google Search Grounded Gemini LLM queries.
     """
     def __init__(self):
         # Fallback environment key loading
         self.default_api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
 
-    def analyze_competitive_landscape(
+    def analyze_macro_outlook(
         self,
         api_key: Optional[str],
         company_name: str,
@@ -23,30 +23,30 @@ class CompetitiveLandscapeAgent:
         industry: str
     ) -> str:
         """
-        Retrieves grounded competitive landscape analysis via Gemini API with Google Search.
+        Retrieves grounded macroeconomic and industry sector status analysis via Gemini API with Google Search.
         """
         active_key = api_key or self.default_api_key
 
         if not active_key:
             return """> [!WARNING]
-> **Gemini API Key Missing**: A valid Gemini API Key is required to perform real-time web-grounded Competitive Landscape analysis. Please configure your key in the sidebar.
+> **Gemini API Key Missing**: A valid Gemini API Key is required to perform real-time web-grounded Macro Outlook analysis. Please configure your key in the sidebar.
 """
 
         prompt = f"""
-You are an expert, institutional-grade financial analyst writing an investment memo.
-Perform a detailed, web-grounded competitive landscape analysis for {company_name} (Ticker: {ticker}) in the {sector} / {industry} industry.
+You are Agent 2, a Senior Macroeconomic and Sector Strategist in Equity Research.
+Your task is to provide a comprehensive, investment-banking-grade Macroeconomic Status and Sector Outlook for the following company: {company_name} (Ticker: {ticker}) in the {sector} / {industry} industry.
 
 You MUST structure your response into 4 sections:
-1. Key Competitors
-2. Market Share & Moat
-3. Competitor Updates
-4. Barriers to Entry
+1. Macroeconomic Environment
+2. Sector & Industry Trends
+3. Economic Measures & Policy Impacts
+4. Macro-driven Risks & Opportunities
 
 Analyze the following for each section:
-1. **Key Competitors**: Identify the main competitors in the market (both direct and indirect). Highlight their ticker symbols if public.
-2. **Market Share & Moat**: Analyze the company's estimated market share compared to these peers. Explain what constitutes the company's sustainable competitive advantage (economic moat) or lack thereof.
-3. **Competitor Updates**: Search for the latest major news and developments from key competitors (e.g., newly developed capabilities, new products/services, market expansions, strategic shifts). Explain what these updates mean for {company_name}.
-4. **Barriers to Entry**: Evaluate the barriers to entry in this market. Highlight any notable new entrants or substitution threats.
+1. **Macroeconomic Environment**: Current macroeconomic climate (interest rates, inflation rates/CPI/PCE, GDP growth trends) in the primary countries of operation for this company. Analysis of how these broad economic factors impact the company's cost of capital and consumer demand.
+2. **Sector & Industry Trends**: Current state of the company's primary industry (growth cycles, market dynamics, supply chain issues, or commodity price fluctuations). Major headwind and tailwind trends currently shaping the industry.
+3. **Economic Measures & Policy Impacts**: Impact of central bank actions (monetary policies, interest rate hikes/cuts), fiscal policies, government spending, tariffs, trade policies, and specific regulatory shifts (e.g., green policies, technology controls, labor regulations) affecting the company or its sector.
+4. **Macro-driven Risks & Opportunities**: Synthesis of macro-driven risks (e.g., foreign exchange risks, inflation margin pressure, pricing power erosion) and opportunities (e.g., government subsidies, demographic shifts, defensive market position).
 
 You MUST output your response in JSON format matching this exact schema:
 {{
@@ -84,12 +84,11 @@ You MUST output your response in JSON format matching this exact schema:
                 return """> [!WARNING]
 > **Gemini API Limit Reached (Status 429)**: You have exceeded the request quota limit for the Gemini Free Tier.
 > 
-> * **If you generated a new API key recently**: Make sure you have added a billing account to your Google AI Studio project to enable higher rate limits.
 > * **Temporary Delay**: The Free Tier limits requests per minute. Please wait 1-2 minutes and toggle this agent ON again to retry.
-> """
+"""
             else:
                 return f"""> [!ERROR]
-> **Gemini API Request Failed (Status {response.status_code})**: Unable to complete competitive landscape analysis.
+> **Gemini API Request Failed (Status {response.status_code})**: Unable to complete macro outlook analysis.
 > Details: {response.text}
 """
         except Exception as e:
