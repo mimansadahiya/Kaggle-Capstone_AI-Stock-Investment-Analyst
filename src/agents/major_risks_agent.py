@@ -57,9 +57,9 @@ You MUST output your response in JSON format matching this exact schema:
 }}
 """
 
+        import json
         try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={active_key}"
-            headers = {"Content-Type": "application/json"}
             payload = {
                 "contents": [{
                     "parts": [{"text": prompt}]
@@ -67,23 +67,35 @@ You MUST output your response in JSON format matching this exact schema:
                 "tools": [
                     {"google_search": {}}
                 ],
-                "generationConfig": {
-                    "responseMimeType": "application/json"
-                }
             }
-            response = requests.post(url, headers=headers, json=payload, timeout=180)
+            json_payload = json.dumps(payload)
+            headers = {
+                "Content-Type": "application/json",
+                "Content-Length": str(len(json_payload.encode('utf-8')))
+            }
+            
+            import time
+            max_retries = 3
+            backoff_seconds = 6
+            response = None
+            for attempt in range(max_retries):
+                response = requests.post(url, headers=headers, data=json_payload, timeout=180)
+                if response.status_code == 200:
+                    break
+                elif response.status_code == 429 and attempt < max_retries - 1:
+                    time.sleep(backoff_seconds * (attempt + 1))
+                else:
+                    break
             
             if response.status_code == 200:
                 data = response.json()
                 text = data['candidates'][0]['content']['parts'][0]['text']
                 return text
             elif response.status_code == 429:
-                return """> [!WARNING]
-> **Gemini API Limit Reached (Status 429)**: You have exceeded the request quota limit for the Gemini Free Tier.
-> 
-> * **If you generated a new API key recently**: Make sure you have added a billing account to your Google AI Studio project to enable higher rate limits.
-> * **Temporary Delay**: The Free Tier limits requests per minute. Please wait 1-2 minutes and toggle this agent ON again to retry.
-> """
+                return f"""> [!WARNING]
+> **Gemini API Limit Reached (Status 429)**: Rate limit exceeded.
+> **Details**: `{response.text}`
+"""
             else:
                 return f"""> [!ERROR]
 > **Gemini API Request Failed (Status {response.status_code})**: Unable to complete major risks analysis.

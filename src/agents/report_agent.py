@@ -116,16 +116,32 @@ Use professional, markdown-formatted investment banking style layout. Do not use
         if not self.api_key:
             return self._generate_fallback_report(ticker, company_name, current_price, fundamental_data, valuation_data, risk_data)
 
+        import json
         try:
-            # Call Gemini 2.5 Flash API directly using requests
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={self.api_key}"
-            headers = {"Content-Type": "application/json"}
             payload = {
                 "contents": [{
                     "parts": [{"text": prompt}]
                 }]
             }
-            response = requests.post(url, headers=headers, json=payload, timeout=180)
+            json_payload = json.dumps(payload)
+            headers = {
+                "Content-Type": "application/json",
+                "Content-Length": str(len(json_payload.encode('utf-8')))
+            }
+            
+            import time
+            max_retries = 3
+            backoff_seconds = 6
+            response = None
+            for attempt in range(max_retries):
+                response = requests.post(url, headers=headers, data=json_payload, timeout=180)
+                if response.status_code == 200:
+                    break
+                elif response.status_code == 429 and attempt < max_retries - 1:
+                    time.sleep(backoff_seconds * (attempt + 1))
+                else:
+                    break
             
             if response.status_code == 200:
                 data = response.json()
@@ -133,10 +149,8 @@ Use professional, markdown-formatted investment banking style layout. Do not use
                 return text
             elif response.status_code == 429:
                 return f"""### Gemini API Limit Reached (Status 429)
-You have exceeded the request quota limit for the Gemini Free Tier.
-
-* **If you generated a new API key recently**: Make sure you have added a billing account to your Google AI Studio project to enable higher rate limits.
-* **Temporary Delay**: The Free Tier limits requests per minute. Please wait 1-2 minutes and click "Generate Memo" again to retry.
+Rate limit exceeded.
+**Details**: `{response.text}`
 
 ---
 

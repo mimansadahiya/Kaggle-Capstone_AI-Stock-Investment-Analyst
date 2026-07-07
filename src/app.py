@@ -3,6 +3,8 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import os
+import json
+import time
 
 from data_fetcher import DataFetcher
 from agents.metrics_agent import MetricsAgent
@@ -22,8 +24,14 @@ def parse_agent_sections(raw_text: str):
     if not raw_text or raw_text.strip().startswith(">"):
         return [{"section": "Status / Alert", "summary": "Sub-agent status message", "details": raw_text}]
         
+    cleaned = raw_text.strip()
+    first_brace = cleaned.find('{')
+    last_brace = cleaned.rfind('}')
+    if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+        cleaned = cleaned[first_brace:last_brace+1]
+        
     try:
-        data = json.loads(raw_text)
+        data = json.loads(cleaned)
         sections = []
         raw_sections = data.get("sections", [])
         for sec in raw_sections:
@@ -234,9 +242,46 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# --- Disk Cache Helpers for Free Tier stability ---
+CACHE_DIR = os.path.join(os.path.dirname(__file__), "cache")
+os.makedirs(CACHE_DIR, exist_ok=True)
+
+def load_disk_cache(ticker: str):
+    path = os.path.join(CACHE_DIR, f"{ticker.upper()}_cache.json")
+    if os.path.exists(path):
+        try:
+            with open(path, "r") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+def save_disk_cache(ticker: str, data: dict):
+    serializable = {}
+    for k, v in data.items():
+        if isinstance(v, str) and not any(ind in v for ind in ["### API Error", "### Gemini API Limit Reached", "### Connection Exception", "Status 429", "Request Failed"]):
+            serializable[k] = v
+    if serializable:
+        path = os.path.join(CACHE_DIR, f"{ticker.upper()}_cache.json")
+        try:
+            with open(path, "w") as f:
+                json.dump(serializable, f, indent=4)
+        except Exception:
+            pass
+
 # --- 3. Sidebar Configuration ---
 st.sidebar.markdown("## Configuration Panel")
 ticker_input = st.sidebar.text_input("Enter Stock Ticker", value="AAPL").upper().strip()
+
+if st.sidebar.button("🧹 Clear Ticker Disk Cache", use_container_width=True):
+    if ticker_input:
+        path = os.path.join(CACHE_DIR, f"{ticker_input.upper()}_cache.json")
+        if os.path.exists(path):
+            os.remove(path)
+        st.session_state.pop("agent_cache", None)
+        st.session_state.pop("cached_ticker", None)
+        st.success(f"Cleared cache for {ticker_input}!")
+        st.rerun()
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### API Credentials")
@@ -268,7 +313,8 @@ st.markdown('<div class="sub-title">Smart Insights, Real-Time Analysis</div>', u
 if ticker_input:
     # Initialize cache for qualitative agent outputs
     if "agent_cache" not in st.session_state or st.session_state.get("cached_ticker") != ticker_input:
-        st.session_state["agent_cache"] = {}
+        disk_cache = load_disk_cache(ticker_input)
+        st.session_state["agent_cache"] = disk_cache
         st.session_state["cached_ticker"] = ticker_input
 
     # 4.1 Ingest Data
@@ -294,6 +340,60 @@ if ticker_input:
             st.caption(f"Sector: **{sector}** | Industry: **{industry}**")
         with col_right:
             st.markdown(f"<div style='text-align: right;'><span style='font-size: 2.2rem; font-weight: 700;'>${current_price:.2f}</span> <span style='font-size: 1.1rem; color: #7f8c8d;'>{currency}</span></div>", unsafe_allow_html=True)
+
+        # --- Run all qualitative sub-agents up front ---
+        active_key = api_key_input.strip() if api_key_input.strip() else None
+        
+        with st.status(f"🚀 Running Multi-Agent Stock Analysis for {company_name}...", expanded=True) as status:
+            if "agent_1" not in st.session_state["agent_cache"]:
+                st.write("🏢 Agent 1: Compiling company overview and corporate profile...")
+                st.session_state["agent_cache"]["agent_1"] = company_overview_agent.analyze_company_overview(
+                    active_key, company_name, ticker_input, sector, industry
+                )
+                save_disk_cache(ticker_input, st.session_state["agent_cache"])
+                time.sleep(4)
+            if "agent_2" not in st.session_state["agent_cache"]:
+                st.write("🌍 Agent 2: Analyzing macroeconomic conditions and sector trends...")
+                st.session_state["agent_cache"]["agent_2"] = macro_outlook_agent.analyze_macro_outlook(
+                    active_key, company_name, ticker_input, sector, industry
+                )
+                save_disk_cache(ticker_input, st.session_state["agent_cache"])
+                time.sleep(4)
+            if "agent_3" not in st.session_state["agent_cache"]:
+                st.write("🤝 Agent 3: Assessing competitive moats and market landscape...")
+                st.session_state["agent_cache"]["agent_3"] = comp_landscape_agent.analyze_competitive_landscape(
+                    active_key, company_name, ticker_input, sector, industry
+                )
+                save_disk_cache(ticker_input, st.session_state["agent_cache"])
+                time.sleep(4)
+            if "agent_4" not in st.session_state["agent_cache"]:
+                st.write("📣 Agent 4: Scanning news articles and social media sentiment...")
+                st.session_state["agent_cache"]["agent_4"] = news_sentiment_agent.analyze_news_and_sentiment(
+                    active_key, company_name, ticker_input, industry
+                )
+                save_disk_cache(ticker_input, st.session_state["agent_cache"])
+                time.sleep(4)
+            if "agent_5" not in st.session_state["agent_cache"]:
+                st.write("📊 Agent 5: Evaluating industry growth dynamics...")
+                st.session_state["agent_cache"]["agent_5"] = industry_analysis_agent.analyze_industry(
+                    active_key, company_name, ticker_input, sector, industry
+                )
+                save_disk_cache(ticker_input, st.session_state["agent_cache"])
+                time.sleep(4)
+            if "agent_6" not in st.session_state["agent_cache"]:
+                st.write("🔍 Agent 6: Scoring financial and operational performance benchmarks...")
+                st.session_state["agent_cache"]["agent_6"] = performance_assessor_agent.analyze_performance(
+                    active_key, company_name
+                )
+                save_disk_cache(ticker_input, st.session_state["agent_cache"])
+                time.sleep(4)
+            if "agent_7" not in st.session_state["agent_cache"]:
+                st.write("🔥 Agent 7: Assessing operational, financial, and GRC risks...")
+                st.session_state["agent_cache"]["agent_7"] = major_risks_agent.analyze_major_risks(
+                    active_key, company_name, ticker_input
+                )
+                save_disk_cache(ticker_input, st.session_state["agent_cache"])
+            status.update(label="Analysis complete! All qualitative reports loaded.", state="complete", expanded=False)
 
         # Tabs for Dashboard Layout
         tab_report, tab_company_overview, tab_macro_outlook, tab_comp, tab_sentiment, tab_industry_analysis, tab_performance_assessor, tab_major_risks = st.tabs([
@@ -547,18 +647,10 @@ if ticker_input:
         # --- Tab 1.1 (Agent 1): Company Overview ---
         with tab_company_overview:
             st.subheader("Agent 1: Company Overview Analysis")
-            run_agent_1 = st.toggle("Activate Agent 1 (Company Overview)", value=False, key="run_agent_1")
-            if run_agent_1:
-                if "agent_1" not in st.session_state["agent_cache"]:
-                    active_key = api_key_input.strip() if api_key_input.strip() else None
-                    with st.spinner("Analyzing company overview..."):
-                        st.session_state["agent_cache"]["agent_1"] = company_overview_agent.analyze_company_overview(
-                            active_key, company_name, ticker_input, sector, industry
-                        )
-                overview_markdown = st.session_state["agent_cache"]["agent_1"]
-                
+            overview_markdown = st.session_state["agent_cache"].get("agent_1", "")
+            if overview_markdown:
                 sections = parse_agent_sections(overview_markdown)
-                if len(sections) == 1 and sections[0]["section"] == "Analysis Overview":
+                if len(sections) == 1 and sections[0]["section"] == "Status / Alert":
                     st.markdown(f'<div class="saas-card saas-metric-coral">{overview_markdown}</div>', unsafe_allow_html=True)
                 else:
                     col1, col2 = st.columns(2)
@@ -577,24 +669,15 @@ if ticker_input:
                                 st.markdown(sec['details'])
                             st.write("")
             else:
-                st.session_state["agent_cache"].pop("agent_1", None)
-                st.info("Agent 1 is currently inactive. Turn on the toggle switch above to run the analysis.")
+                st.info("No data available for Agent 1.")
 
         # --- Tab 1.2 (Agent 2): Macro Outlook ---
         with tab_macro_outlook:
             st.subheader("Agent 2: Macroeconomic & Sector Outlook")
-            run_agent_2 = st.toggle("Activate Agent 2 (Macro Outlook)", value=False, key="run_agent_2")
-            if run_agent_2:
-                if "agent_2" not in st.session_state["agent_cache"]:
-                    active_key = api_key_input.strip() if api_key_input.strip() else None
-                    with st.spinner("Analyzing macroeconomic environment..."):
-                        st.session_state["agent_cache"]["agent_2"] = macro_outlook_agent.analyze_macro_outlook(
-                            active_key, company_name, ticker_input, sector, industry
-                        )
-                macro_markdown = st.session_state["agent_cache"]["agent_2"]
-                
+            macro_markdown = st.session_state["agent_cache"].get("agent_2", "")
+            if macro_markdown:
                 sections = parse_agent_sections(macro_markdown)
-                if len(sections) == 1 and sections[0]["section"] == "Analysis Overview":
+                if len(sections) == 1 and sections[0]["section"] == "Status / Alert":
                     st.markdown(f'<div class="saas-card saas-metric-coral">{macro_markdown}</div>', unsafe_allow_html=True)
                 else:
                     col1, col2 = st.columns(2)
@@ -613,24 +696,15 @@ if ticker_input:
                                 st.markdown(sec['details'])
                             st.write("")
             else:
-                st.session_state["agent_cache"].pop("agent_2", None)
-                st.info("Agent 2 is currently inactive. Turn on the toggle switch above to run the analysis.")
+                st.info("No data available for Agent 2.")
 
         # --- Tab 3: Agent 3: Competitive Landscape ---
         with tab_comp:
             st.subheader("Agent 3: Competitive Landscape Analysis")
-            run_agent_3 = st.toggle("Activate Agent 3 (Competitive Landscape)", value=False, key="run_agent_3")
-            if run_agent_3:
-                if "agent_3" not in st.session_state["agent_cache"]:
-                    active_key = api_key_input.strip() if api_key_input.strip() else None
-                    with st.spinner("Analyzing competitive landscape..."):
-                        st.session_state["agent_cache"]["agent_3"] = comp_landscape_agent.analyze_competitive_landscape(
-                            active_key, company_name, ticker_input, sector, industry
-                        )
-                comp_markdown = st.session_state["agent_cache"]["agent_3"]
-                
+            comp_markdown = st.session_state["agent_cache"].get("agent_3", "")
+            if comp_markdown:
                 sections = parse_agent_sections(comp_markdown)
-                if len(sections) == 1 and sections[0]["section"] == "Analysis Overview":
+                if len(sections) == 1 and sections[0]["section"] == "Status / Alert":
                     st.markdown(f'<div class="saas-card saas-metric-coral">{comp_markdown}</div>', unsafe_allow_html=True)
                 else:
                     col1, col2 = st.columns(2)
@@ -649,24 +723,15 @@ if ticker_input:
                                 st.markdown(sec['details'])
                             st.write("")
             else:
-                st.session_state["agent_cache"].pop("agent_3", None)
-                st.info("Agent 3 is currently inactive. Turn on the toggle switch above to run the analysis.")
+                st.info("No data available for Agent 3.")
 
         # --- Tab 4: Agent 4: News & Sentiments ---
         with tab_sentiment:
             st.subheader("Agent 4: News, Sentiments, and Voice of Customers")
-            run_agent_4 = st.toggle("Activate Agent 4 (News & Sentiments)", value=False, key="run_agent_4")
-            if run_agent_4:
-                if "agent_4" not in st.session_state["agent_cache"]:
-                    active_key = api_key_input.strip() if api_key_input.strip() else None
-                    with st.spinner("Analyzing recent news and market sentiment..."):
-                        st.session_state["agent_cache"]["agent_4"] = news_sentiment_agent.analyze_news_and_sentiment(
-                            active_key, company_name, ticker_input, industry
-                        )
-                sentiment_markdown = st.session_state["agent_cache"]["agent_4"]
-                
+            sentiment_markdown = st.session_state["agent_cache"].get("agent_4", "")
+            if sentiment_markdown:
                 sections = parse_agent_sections(sentiment_markdown)
-                if len(sections) == 1 and sections[0]["section"] == "Analysis Overview":
+                if len(sections) == 1 and sections[0]["section"] == "Status / Alert":
                     st.markdown(f'<div class="saas-card saas-metric-coral">{sentiment_markdown}</div>', unsafe_allow_html=True)
                 else:
                     col1, col2 = st.columns(2)
@@ -685,24 +750,15 @@ if ticker_input:
                                 st.markdown(sec['details'])
                             st.write("")
             else:
-                st.session_state["agent_cache"].pop("agent_4", None)
-                st.info("Agent 4 is currently inactive. Turn on the toggle switch above to run the analysis.")
+                st.info("No data available for Agent 4.")
 
         # --- Tab 5: Agent 5: Industry Analysis ---
         with tab_industry_analysis:
             st.subheader("Agent 5: Industry & Market Analysis")
-            run_agent_5 = st.toggle("Activate Agent 5 (Industry Analysis)", value=False, key="run_agent_5")
-            if run_agent_5:
-                if "agent_5" not in st.session_state["agent_cache"]:
-                    active_key = api_key_input.strip() if api_key_input.strip() else None
-                    with st.spinner("Analyzing industry and market..."):
-                        st.session_state["agent_cache"]["agent_5"] = industry_analysis_agent.analyze_industry(
-                            active_key, company_name, ticker_input, sector, industry
-                        )
-                industry_markdown = st.session_state["agent_cache"]["agent_5"]
-                
+            industry_markdown = st.session_state["agent_cache"].get("agent_5", "")
+            if industry_markdown:
                 sections = parse_agent_sections(industry_markdown)
-                if len(sections) == 1 and sections[0]["section"] == "Analysis Overview":
+                if len(sections) == 1 and sections[0]["section"] == "Status / Alert":
                     st.markdown(f'<div class="saas-card saas-metric-coral">{industry_markdown}</div>', unsafe_allow_html=True)
                 else:
                     col1, col2 = st.columns(2)
@@ -721,26 +777,22 @@ if ticker_input:
                                 st.markdown(sec['details'])
                             st.write("")
             else:
-                st.session_state["agent_cache"].pop("agent_5", None)
-                st.info("Agent 5 is currently inactive. Turn on the toggle switch above to run the analysis.")
+                st.info("No data available for Agent 5.")
 
         # --- Tab 6: Agent 6: Performance Assessor ---
         with tab_performance_assessor:
             st.subheader("Agent 6: Financial & Operational Performance Assessment")
-            run_agent_6 = st.toggle("Activate Agent 6 (Performance Assessor)", value=False, key="run_agent_6")
-            if run_agent_6:
-                if "agent_6" not in st.session_state["agent_cache"]:
-                    active_key = api_key_input.strip() if api_key_input.strip() else None
-                    with st.spinner("Performing research and performance assessment (this takes a moment due to web searches)..."):
-                        st.session_state["agent_cache"]["agent_6"] = performance_assessor_agent.analyze_performance(
-                            active_key, company_name
-                        )
-                perf_markdown = st.session_state["agent_cache"]["agent_6"]
-                
+            perf_markdown = st.session_state["agent_cache"].get("agent_6", "")
+            if perf_markdown:
                 # Render JSON section format if valid, else fallback to raw markdown rendering
                 if perf_markdown and not perf_markdown.strip().startswith(">"):
                     try:
-                        data = json.loads(perf_markdown)
+                        cleaned_perf = perf_markdown.strip()
+                        first_brace = cleaned_perf.find('{')
+                        last_brace = cleaned_perf.rfind('}')
+                        if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+                            cleaned_perf = cleaned_perf[first_brace:last_brace+1]
+                        data = json.loads(cleaned_perf)
                         for sec in data.get("sections", []):
                             st.markdown(f"### {sec.get('section_name')}")
                             st.markdown(f"*{sec.get('summary')}*")
@@ -751,24 +803,15 @@ if ticker_input:
                 else:
                     st.markdown(perf_markdown, unsafe_allow_html=True)
             else:
-                st.session_state["agent_cache"].pop("agent_6", None)
-                st.info("Agent 6 is currently inactive. Turn on the toggle switch above to run the analysis.")
+                st.info("No data available for Agent 6.")
 
 
 
         # --- Tab: Agent 7: Major Risks ---
         with tab_major_risks:
             st.subheader("Agent 7: Qualitative Risk Assessment")
-            run_agent_7 = st.toggle("Activate Agent 7 (Major Risks)", value=False, key="run_agent_7")
-            if run_agent_7:
-                if "agent_7" not in st.session_state["agent_cache"]:
-                    active_key = api_key_input.strip() if api_key_input.strip() else None
-                    with st.spinner("Analyzing strategic, operational, financial, and GRC risk factors..."):
-                        st.session_state["agent_cache"]["agent_7"] = major_risks_agent.analyze_major_risks(
-                            active_key, company_name, ticker_input
-                        )
-                major_risks_markdown = st.session_state["agent_cache"]["agent_7"]
-                
+            major_risks_markdown = st.session_state["agent_cache"].get("agent_7", "")
+            if major_risks_markdown:
                 sections = parse_agent_sections(major_risks_markdown)
                 if len(sections) == 1 and sections[0]["section"] == "Status / Alert":
                     st.markdown(f'<div class="saas-card saas-metric-coral">{major_risks_markdown}</div>', unsafe_allow_html=True)
@@ -789,8 +832,7 @@ if ticker_input:
                                 st.markdown(sec['details'])
                             st.write("")
             else:
-                st.session_state["agent_cache"].pop("agent_7", None)
-                st.info("Agent 7 is currently inactive. Turn on the toggle switch above to run the analysis.")
+                st.info("No data available for Agent 7.")
 
 else:
     st.info("Enter a stock ticker in the sidebar to begin analysis.")

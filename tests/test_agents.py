@@ -1,6 +1,7 @@
 import pytest
 import pandas as pd
 import numpy as np
+import json
 from src.agents.metrics_agent import MetricsAgent
 from src.agents.valuation_agent import ValuationAgent
 from src.agents.risk_agent import RiskAgent
@@ -190,7 +191,8 @@ def test_competitive_landscape_agent_success(mock_post):
     assert "Mocked competitive landscape analysis." in res
 
     # Verify Google Search Grounding configuration in payload
-    called_json = mock_post.call_args[1]["json"]
+    kwargs = mock_post.call_args[1]
+    called_json = json.loads(kwargs["data"]) if "data" in kwargs else kwargs.get("json")
     assert "tools" in called_json
     assert "google_search" in called_json["tools"][0]
 
@@ -211,7 +213,8 @@ def test_news_sentiment_agent_success(mock_post):
     res = agent.analyze_news_and_sentiment("fake-key", "Apple", "AAPL", "Consumer Elec")
     assert "Mocked news and sentiment analysis." in res
 
-    called_json = mock_post.call_args[1]["json"]
+    kwargs = mock_post.call_args[1]
+    called_json = json.loads(kwargs["data"]) if "data" in kwargs else kwargs.get("json")
     assert "tools" in called_json
     assert "google_search" in called_json["tools"][0]
 
@@ -232,7 +235,8 @@ def test_major_risks_agent_success(mock_post):
     res = agent.analyze_major_risks("fake-key", "Apple", "AAPL")
     assert "Mocked major risks analysis." in res
 
-    called_json = mock_post.call_args[1]["json"]
+    kwargs = mock_post.call_args[1]
+    called_json = json.loads(kwargs["data"]) if "data" in kwargs else kwargs.get("json")
     assert "tools" in called_json
     assert "google_search" in called_json["tools"][0]
 
@@ -260,7 +264,8 @@ def test_company_overview_agent_success(mock_post):
     res = agent.analyze_company_overview("fake-key", "Apple", "AAPL", "Tech", "Consumer Elec")
     assert "Mocked company overview analysis." in res
 
-    called_json = mock_post.call_args[1]["json"]
+    kwargs = mock_post.call_args[1]
+    called_json = json.loads(kwargs["data"]) if "data" in kwargs else kwargs.get("json")
     assert "tools" in called_json
     assert "google_search" in called_json["tools"][0]
 
@@ -281,7 +286,8 @@ def test_macro_outlook_agent_success(mock_post):
     res = agent.analyze_macro_outlook("fake-key", "Apple", "AAPL", "Tech", "Consumer Elec")
     assert "Mocked macro analysis." in res
 
-    called_json = mock_post.call_args[1]["json"]
+    kwargs = mock_post.call_args[1]
+    called_json = json.loads(kwargs["data"]) if "data" in kwargs else kwargs.get("json")
     assert "tools" in called_json
     assert "google_search" in called_json["tools"][0]
 
@@ -302,7 +308,8 @@ def test_industry_analysis_agent_success(mock_post):
     res = agent.analyze_industry("fake-key", "Apple", "AAPL", "Tech", "Consumer Elec")
     assert "Mocked industry analysis." in res
 
-    called_json = mock_post.call_args[1]["json"]
+    kwargs = mock_post.call_args[1]
+    called_json = json.loads(kwargs["data"]) if "data" in kwargs else kwargs.get("json")
     assert "tools" in called_json
     assert "google_search" in called_json["tools"][0]
 
@@ -325,7 +332,8 @@ def test_performance_assessor_agent_success(mock_search, mock_post):
     res = agent.analyze_performance("fake-key", "Apple")
     assert "Mocked financial performance assessment report." in res
 
-    called_json = mock_post.call_args[1]["json"]
+    kwargs = mock_post.call_args[1]
+    called_json = json.loads(kwargs["data"]) if "data" in kwargs else kwargs.get("json")
     assert "contents" in called_json
     assert "Mocked DuckDuckGo search context" in called_json["contents"][0]["parts"][0]["text"]
 
