@@ -259,7 +259,7 @@ def load_disk_cache(ticker: str):
 def save_disk_cache(ticker: str, data: dict):
     serializable = {}
     for k, v in data.items():
-        if isinstance(v, str) and not any(ind in v for ind in ["### API Error", "### Gemini API Limit Reached", "### Connection Exception", "Status 429", "Request Failed"]):
+        if isinstance(v, str) and not any(ind in v for ind in ["### API Error", "### Gemini API Limit Reached", "### Connection Exception", "Status 429", "Request Failed", "Key Missing"]):
             serializable[k] = v
     if serializable:
         path = os.path.join(CACHE_DIR, f"{ticker.upper()}_cache.json")
@@ -316,6 +316,17 @@ if ticker_input:
         disk_cache = load_disk_cache(ticker_input)
         st.session_state["agent_cache"] = disk_cache
         st.session_state["cached_ticker"] = ticker_input
+
+    # Clear any "API Key Missing" warnings if the user has now provided an API key in the sidebar
+    active_key = api_key_input.strip() if api_key_input.strip() else None
+    current_key_state = active_key if active_key else "None"
+    if "cached_api_key" not in st.session_state or st.session_state.get("cached_api_key") != current_key_state:
+        if "agent_cache" in st.session_state:
+            for k in list(st.session_state["agent_cache"].keys()):
+                val = st.session_state["agent_cache"][k]
+                if isinstance(val, str) and "Key Missing" in val:
+                    st.session_state["agent_cache"].pop(k)
+        st.session_state["cached_api_key"] = current_key_state
 
     # 4.1 Ingest Data
     with st.spinner(f"Aggregating market data for {ticker_input}..."):
