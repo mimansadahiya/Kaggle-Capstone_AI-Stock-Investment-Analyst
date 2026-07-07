@@ -67,6 +67,7 @@ You MUST output your response in JSON format matching this exact schema:
                     {"google_search": {}}
                 ],
                 "generationConfig": {
+                    "responseMimeType": "application/json",
                     "maxOutputTokens": 1000
                 }
             }

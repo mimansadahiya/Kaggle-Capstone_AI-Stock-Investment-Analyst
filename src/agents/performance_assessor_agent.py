@@ -140,7 +140,7 @@ Target Company: {company_name}
 
         import json
         try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={active_key}"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={active_key}"
             payload = {
                 "contents": [{
                     "parts": [{"text": prompt}]
