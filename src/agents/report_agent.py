@@ -122,7 +122,10 @@ Use professional, markdown-formatted investment banking style layout. Do not use
             payload = {
                 "contents": [{
                     "parts": [{"text": prompt}]
-                }]
+                }],
+                "generationConfig": {
+                    "maxOutputTokens": 1500
+                }
             }
             json_payload = json.dumps(payload)
             headers = {
@@ -138,7 +141,7 @@ Use professional, markdown-formatted investment banking style layout. Do not use
                 response = requests.post(url, headers=headers, data=json_payload, timeout=180)
                 if response.status_code == 200:
                     break
-                elif response.status_code == 429 and attempt < max_retries - 1:
+                elif response.status_code in [429, 503, 504] and attempt < max_retries - 1:
                     time.sleep(backoff_seconds * (attempt + 1))
                 else:
                     break

@@ -67,6 +67,9 @@ You MUST output your response in JSON format matching this exact schema:
                 "tools": [
                     {"google_search": {}}
                 ],
+                "generationConfig": {
+                    "maxOutputTokens": 1000
+                }
             }
             json_payload = json.dumps(payload)
             headers = {
@@ -82,7 +85,7 @@ You MUST output your response in JSON format matching this exact schema:
                 response = requests.post(url, headers=headers, data=json_payload, timeout=180)
                 if response.status_code == 200:
                     break
-                elif response.status_code == 429 and attempt < max_retries - 1:
+                elif response.status_code in [429, 503, 504] and attempt < max_retries - 1:
                     time.sleep(backoff_seconds * (attempt + 1))
                 else:
                     break

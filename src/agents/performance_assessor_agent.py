@@ -146,7 +146,8 @@ Target Company: {company_name}
                     "parts": [{"text": prompt}]
                 }],
                 "generationConfig": {
-                    "responseMimeType": "application/json"
+                    "responseMimeType": "application/json",
+                    "maxOutputTokens": 1000
                 }
             }
             json_payload = json.dumps(payload)
@@ -163,7 +164,7 @@ Target Company: {company_name}
                 response = requests.post(url, headers=headers, data=json_payload, timeout=180)
                 if response.status_code == 200:
                     break
-                elif response.status_code == 429 and attempt < max_retries - 1:
+                elif response.status_code in [429, 503, 504] and attempt < max_retries - 1:
                     time.sleep(backoff_seconds * (attempt + 1))
                 else:
                     break

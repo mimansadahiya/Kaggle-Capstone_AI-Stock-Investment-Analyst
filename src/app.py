@@ -362,42 +362,42 @@ if ticker_input:
                     active_key, company_name, ticker_input, sector, industry
                 )
                 save_disk_cache(ticker_input, st.session_state["agent_cache"])
-                time.sleep(4)
+                time.sleep(6)
             if "agent_2" not in st.session_state["agent_cache"]:
                 st.write("🌍 Agent 2: Analyzing macroeconomic conditions and sector trends...")
                 st.session_state["agent_cache"]["agent_2"] = macro_outlook_agent.analyze_macro_outlook(
                     active_key, company_name, ticker_input, sector, industry
                 )
                 save_disk_cache(ticker_input, st.session_state["agent_cache"])
-                time.sleep(4)
+                time.sleep(6)
             if "agent_3" not in st.session_state["agent_cache"]:
                 st.write("🤝 Agent 3: Assessing competitive moats and market landscape...")
                 st.session_state["agent_cache"]["agent_3"] = comp_landscape_agent.analyze_competitive_landscape(
                     active_key, company_name, ticker_input, sector, industry
                 )
                 save_disk_cache(ticker_input, st.session_state["agent_cache"])
-                time.sleep(4)
+                time.sleep(6)
             if "agent_4" not in st.session_state["agent_cache"]:
                 st.write("📣 Agent 4: Scanning news articles and social media sentiment...")
                 st.session_state["agent_cache"]["agent_4"] = news_sentiment_agent.analyze_news_and_sentiment(
                     active_key, company_name, ticker_input, industry
                 )
                 save_disk_cache(ticker_input, st.session_state["agent_cache"])
-                time.sleep(4)
+                time.sleep(6)
             if "agent_5" not in st.session_state["agent_cache"]:
                 st.write("📊 Agent 5: Evaluating industry growth dynamics...")
                 st.session_state["agent_cache"]["agent_5"] = industry_analysis_agent.analyze_industry(
                     active_key, company_name, ticker_input, sector, industry
                 )
                 save_disk_cache(ticker_input, st.session_state["agent_cache"])
-                time.sleep(4)
+                time.sleep(6)
             if "agent_6" not in st.session_state["agent_cache"]:
                 st.write("🔍 Agent 6: Scoring financial and operational performance benchmarks...")
                 st.session_state["agent_cache"]["agent_6"] = performance_assessor_agent.analyze_performance(
                     active_key, company_name
                 )
                 save_disk_cache(ticker_input, st.session_state["agent_cache"])
-                time.sleep(4)
+                time.sleep(6)
             if "agent_7" not in st.session_state["agent_cache"]:
                 st.write("🔥 Agent 7: Assessing operational, financial, and GRC risks...")
                 st.session_state["agent_cache"]["agent_7"] = major_risks_agent.analyze_major_risks(
