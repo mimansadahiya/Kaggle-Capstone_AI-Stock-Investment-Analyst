@@ -1,46 +1,85 @@
-# Kaggle Capstone: AI Stock Investment Analyst
+# AI Stock Investment Analyst Dashboard
 
-An AI-powered agentic system designed to analyze stock market data, perform fundamental and technical analysis, and generate comprehensive investment research reports and recommendations.
+An AI-powered agentic system that generates comprehensive, institutional-grade equity research reports and interactive dashboards in minutes. By orchestrating a team of specialized qualitative sub-agents with quantitative financial models, the system helps retail investors and busy professionals get a deep, grounded view of any public stock.
 
-## Project Overview
-This project builds an automated AI Investment Analyst that aggregates data from multiple sources (price history, financial statements, news/market sentiment) and uses machine learning alongside Large Language Models (LLMs) to perform deep stock analysis and portfolio optimization.
+🚀 **[Live Demo](https://sbk2ye3rhnke4sh2cqwylf.streamlit.app/)** | 🎬 **[Walkthrough Video](https://youtu.be/YK_Y4M_PsSo?feature=shared)**
 
-## Key Features
-- **Data Ingestion**: Integrates market data from APIs like Yahoo Finance (`yfinance`), Alpha Vantage, or SEC filings.
-- **Technical Analysis**: Computes technical indicators (e.g., Moving Averages, RSI, MACD, Bollinger Bands).
-- **Fundamental Analysis**: Parses balance sheets, income statements, and cash flow statements to compute key financial ratios (P/E, Debt-to-Equity, ROE).
-- **Sentiment Analysis**: Analyzes financial news headlines and financial reports to gauge market sentiment.
-- **AI Analyst Reports**: Uses LLMs to synthesize findings, evaluate investment risks, and write institutional-grade analyst reports.
-- **Backtesting & Portfolio Optimization**: Evaluates investment strategies using historic data to calculate metrics like Sharpe Ratio and Maximum Drawdown.
+---
 
-## Project Structure
+## 🔑 Key Features
+
+- **Automated Data Ingestion**: Automatically pulls historical price series, corporate profiles, and verified financial statements using Yahoo Finance (`yfinance`).
+- **Interactive Valuation Suite**: Real-time adjustable financial models, including:
+  - **Discounted Cash Flow (DCF)** valuation with margin-of-safety.
+  - **CAPM Expected Returns** based on historical beta and risk-free inputs.
+  - **Benjamin Graham Formula** intrinsic value.
+  - **Institutional Price Targets** and consensus recommendations.
+- **Team of Specialist Agents**: Orchestrates 7 distinct qualitative agents (Macro Outlook, Competition, News & Sentiment, Industry Dynamics, Performance, and GRC Risks) powered by `gemini-2.5-flash` and live **Google Search Grounding**.
+- **Free Quota Optimization**: Built-in 6-second execution pacing and a local disk cache system (`src/cache/`) to eliminate rate-limit errors on the Gemini Free Tier.
+- **Premium SaaS UI**: Clean, interactive multi-tab layout featuring a modern electric-blue theme.
+
+---
+
+## 📂 Project Structure
+
 ```text
-├── data/                    # Local data storage (ignored by git)
-├── notebooks/               # Jupyter notebooks for EDA and prototyping
-├── src/                     # Core source code
-│   ├── data_ingestion.py    # APIs for fetching market and fundamental data
-│   ├── indicators.py        # Technical and fundamental feature calculators
-│   ├── agent.py             # LLM orchestration and analyst report generation
-│   └── portfolio.py         # Backtesting and portfolio optimization engine
-├── tests/                   # Unit and integration tests
-├── requirements.txt         # Project dependencies
-└── README.md                # Project documentation
+├── src/
+│   ├── app.py                      # Main Streamlit dashboard & orchestrator
+│   ├── data_fetcher.py             # Data fetching client (yfinance integration)
+│   ├── cache/                      # Local JSON cache files for ticker results
+│   └── agents/                     # Modular sub-agent implementations
+│       ├── company_overview_agent.py      # Profile & strategy compiler
+│       ├── macro_outlook_agent.py          # Interest rates & GDP trends
+│       ├── competitive_landscape_agent.py  # Peer moats & market share
+│       ├── news_sentiment_agent.py         # Financial news & user sentiments
+│       ├── industry_analysis_agent.py      # Market sizing & industry trends
+│       ├── performance_assessor_agent.py   # Historical operational analysis
+│       ├── major_risks_agent.py            # GRC & financial risk maps
+│       ├── metrics_agent.py                # Mathematical ratio calculator
+│       ├── valuation_agent.py              # DCF & Graham math engines
+│       ├── risk_agent.py                   # Value at Risk (VaR) calculator
+│       └── report_agent.py                 # Synthesis report generator
+├── tests/                          # Unit & integration tests for all calculators
+└── requirements.txt                # Project dependencies
 ```
 
-## Getting Started
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
 - Python 3.9+
-- Pip package manager
+- A Gemini API Key (Optional; if not provided, the dashboard falls back to a rule-based financial analysis report).
 
-### Installation
-1. Clone the repository:
+### Installation & Run
+
+1. **Clone the repository**:
    ```bash
    git clone https://github.com/mimansadahiya/Kaggle-Capstone_AI-Stock-Investment-Analyst.git
    cd Kaggle-Capstone_AI-Stock-Investment-Analyst
    ```
 
-2. Install dependencies:
+2. **Create and activate a virtual environment**:
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   ```
+
+3. **Install dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
+
+4. **Launch the web application**:
+   ```bash
+   streamlit run src/app.py
+   ```
+
+---
+
+## 🧪 Testing
+
+The math engines and API connections include comprehensive unit tests. Run them using:
+```bash
+pytest tests/
+```
